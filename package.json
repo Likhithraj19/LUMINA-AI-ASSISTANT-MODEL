@@ -13,6 +13,7 @@
     "@langchain/core": "^0.3.57",
     "@langchain/mistralai": "^0.2.0",
     "@langchain/openai": "^0.5.11",
+    "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "langchain": "^0.3.27",
     "natural": "^8.1.0",

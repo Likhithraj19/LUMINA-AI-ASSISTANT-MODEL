@@ -1,6 +1,9 @@
 import { ChatMistralAI } from "@langchain/mistralai";
 import { HumanMessage,SystemMessage } from "@langchain/core/messages";
 import readline from 'readline';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const rl = readline.createInterface({
   input : process.stdin,
@@ -9,7 +12,7 @@ const rl = readline.createInterface({
 
 async function researchAssistant(userInput){
     const chat = new ChatMistralAI({
-      apiKey: "ve6zWkVaMmtmQF3hgW8OjP9cCz6m8TiG",
+      apiKey: process.env.MISTRAL_API_KEY,
     });
 
     try{
