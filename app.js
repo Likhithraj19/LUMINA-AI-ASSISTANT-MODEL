@@ -381,3 +381,5 @@ process.on('SIGINT', () => {
   rl.close();
   process.exit(0);
 });
+
+export {initialize, processUserInput}
