@@ -7,10 +7,9 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
-});
+function shouldLog(){
+  return process.env.NODE_ENV !== 'server' && !process.argv.includes('--server');
+}
 
 // Global state variables
 let conversationHistory = [];
@@ -33,8 +32,10 @@ const chat = new ChatMistralAI({
 async function initialize() {
   await loadLearningData();
   await loadConversationHistory();
-  console.log(`🧠 Learning Phase: ${learningPhase.toUpperCase()}`);
-  console.log(`📊 Interactions: ${interactionCount}`);
+  if(shouldLog()){
+    console.log(`🧠 Learning Phase: ${learningPhase.toUpperCase()}`);
+    console.log(`📊 Interactions: ${interactionCount}`);
+  }
 }
 
 async function loadLearningData() {
@@ -48,7 +49,9 @@ async function loadLearningData() {
     interactionCount = parsed.interactionCount || 0;
     learningPhase = interactionCount >= supervisedThreshold ? 'unsupervised' : 'supervised';
   } catch (error) {
+    if(shouldLog()){
     console.log("📝 Starting with fresh learning data...");
+    }
   }
 }
 
@@ -57,7 +60,9 @@ async function loadConversationHistory() {
     const data = await fs.readFile('conversation_history.json', 'utf8');
     conversationHistory = JSON.parse(data) || [];
   } catch (error) {
+  if(shouldLog()){
     console.log("📝 Starting with fresh conversation history...");
+    }
   }
 }
 
@@ -141,7 +146,9 @@ function supervisedLearning(userInput, assistantResponse, feedback = null) {
   learningData.supervised.push(dataPoint);
   extractTopicPatterns(userInput, dataPoint.isResearchRelated);
   
+  if(shouldLog()){
   console.log("📚 [Supervised Learning] Data point collected");
+  }
 }
 
 // Unsupervised learning - find patterns without labels
@@ -161,7 +168,9 @@ function unsupervisedLearning(userInput, assistantResponse) {
   learningData.unsupervised.push(dataPoint);
   updateResponseQuality(userInput, assistantResponse);
   
+  if(shouldLog()){
   console.log("🔍 [Unsupervised Learning] Pattern analysis completed");
+  }
 }
 
 function calculateSimilarity(input) {
@@ -244,14 +253,19 @@ async function processUserInput(userInput) {
     // Check if we should switch to unsupervised learning
     if (learningPhase === 'supervised' && interactionCount >= supervisedThreshold) {
       learningPhase = 'unsupervised';
-      console.log("\n🎓 Switching to UNSUPERVISED learning mode!\n");
+      if(shouldLog()){
+        console.log("\n🎓 Switching to UNSUPERVISED learning mode!\n");
+      }
     }
 
     // Validate research query
     const isResearchRelated = await validateResearchQuery(userInput);
     if (!isResearchRelated && !isGreeting(userInput)) {
-      console.log("\n🤖 Assistant: I specialize in research topics. Could you ask me about an academic subject or research area?\n");
-      return;
+      const warningMessage = "I specialize in research topics. Could you ask me about an academic subject or research area?";
+      if(shouldLog()){
+      console.log("\n🤖 Assistant:", warningMessage,"\n");
+      }
+      return warningMessage;
     }
 
     // Add to conversation history
@@ -286,15 +300,22 @@ async function processUserInput(userInput) {
     await saveLearningData();
     await saveConversationHistory();
 
+    if(shouldLog()){
+
     console.log(`\n🤖 Assistant [${learningPhase}]:`, assistantResponse);
     
     // Ask for feedback in supervised phase
     if (learningPhase === 'supervised' && interactionCount % 5 === 0) {
       askForFeedback();
     }
+  }
+    return assistantResponse;
 
   } catch (error) {
+    if(shouldLog()){
     console.error("❌ Error:", error.message);
+    }
+    throw error;
   }
 }
 
@@ -303,7 +324,9 @@ function isGreeting(input) {
 }
 
 function askForFeedback() {
+  if(shouldLog()){
   console.log("\n💬 Was my response helpful? (Type 'yes', 'no', or just continue with your next question)");
+  }
 }
 
 async function handleFeedback(feedback) {
@@ -316,7 +339,9 @@ async function handleFeedback(feedback) {
         timestamp: new Date().toISOString(),
         context: lastInteraction.input
       });
+      if(shouldLog()){
       console.log("📝 Thank you for your feedback!");
+      }
       await saveLearningData();
       return true;
     }
@@ -325,6 +350,7 @@ async function handleFeedback(feedback) {
 }
 
 function displayStats() {
+  if(shouldLog()){
   console.log("\n📊 Learning Statistics:");
   console.log(`Interactions: ${interactionCount}`);
   console.log(`Learning Phase: ${learningPhase.toUpperCase()}`);
@@ -333,53 +359,6 @@ function displayStats() {
   console.log(`Learned Patterns: ${topicPatterns.size}`);
   console.log(`User Feedback Received: ${userFeedback.length}\n`);
 }
-
-// Main function
-async function startConversation() {
-  await initialize();
-  
-  console.log("\n🔬 Welcome to your AI Research Assistant with Machine Learning!");
-  console.log("📚 I learn from our conversations to provide better assistance.");
-  console.log("Type 'stats' to see learning progress, or 'exit' to end.\n");
-  
-  const askQuestion = () => {
-    rl.question('You: ', async (input) => {
-      const trimmedInput = input.trim();
-      
-      if (trimmedInput.toLowerCase() === 'exit') {
-        console.log('\n🎓 Thank you for helping me learn! Goodbye!\n');
-        displayStats();
-        rl.close();
-        return;
-      }
-      
-      if (trimmedInput.toLowerCase() === 'stats') {
-        displayStats();
-        askQuestion();
-        return;
-      }
-
-      const isFeedback = await handleFeedback(trimmedInput);
-      if (!isFeedback) {
-        await processUserInput(trimmedInput);
-      }
-      
-      askQuestion();
-    });
-  };
-
-  askQuestion();
 }
 
-startConversation().catch(error => {
-  console.error("💥 Application error:", error);
-  process.exit(1);
-});
-
-process.on('SIGINT', () => {
-  console.log('\n\n👋 Shutting down gracefully...');
-  rl.close();
-  process.exit(0);
-});
-
-export {initialize, processUserInput}
+export {initialize, processUserInput, displayStats, handleFeedback};
