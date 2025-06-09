@@ -22,7 +22,7 @@ app.post('/q', async (req, res) => {
     try{
         await initialize();
         const response = await processUserInput(userInput);
-        res.json({ response });
+        res.json(response);
     }catch(error){
         res.status(500).json({error : error.message});
         console.error('Error', error);
