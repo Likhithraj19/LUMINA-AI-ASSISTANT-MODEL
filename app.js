@@ -340,34 +340,6 @@ async function findOrCreateSemanticCluster(input, inputEmbedding) {
   return `semantic_cluster_${Date.now()}`;
 }
 
-//Fallback similarity calculation
-
-// function calculateSimilarity(input) {
-//   const inputWords = new Set(input.toLowerCase().split(/\s+/));
-//   let maxSimilarity = 0;
-  
-//   for (let data of learningData.unsupervised) {
-//     const dataWords = new Set(data.input.toLowerCase().split(/\s+/));
-//     const intersection = new Set([...inputWords].filter(x => dataWords.has(x)));
-//     const union = new Set([...inputWords, ...dataWords]);
-//     const similarity = intersection.size / union.size;
-//     maxSimilarity = Math.max(maxSimilarity, similarity);
-//   }
-  
-//   return maxSimilarity;
-// }
-
-// function findOrCreateCluster(input, similarity) {
-//   if (similarity > 0.3) {
-//     for (let data of learningData.unsupervised) {
-//       if (calculateSimilarity(input) > 0.3) {
-//         return data.cluster;
-//       }
-//     }
-//   }
-//   return `cluster_${Date.now()}`;
-// }
-
 function extractFeatures(input) {
   return {
     length: input.length,
@@ -390,7 +362,7 @@ function updateResponseQuality(input, response) {
 
 // Enhanced system prompt with semantic context
 async function generateSystemPrompt(currentQuery) {
-  let basePrompt = `You are an intelligent research assistant that learns and adapts. 
+  let basePrompt = `You are Lumina, an intelligent research assistant that learns and adapts. 
 Current learning phase: ${learningPhase.toUpperCase()}
 
 Core capabilities:
@@ -450,7 +422,7 @@ async function processUserInput(userInput) {
       }
       return {
         input: userInput,
-        response: warning,
+        response: warningMessage,
         timestamp: new Date().toISOString(),
         isResearchRelated: false
       };
@@ -523,7 +495,6 @@ async function processUserInput(userInput) {
       }
     }
     
-    // return assistantResponse;
     return result;
 
   } catch (error) {
@@ -577,7 +548,6 @@ function displayStats() {
     console.log(`🧠 Conversation Embeddings: ${conversationEmbeddings.length}\n`);
   }
 }
-
 // New function to search similar conversations
 async function searchSimilarConversations(query, threshold = 0.5) {
   const similarConversations = await findSimilarConversations(query, 10);
@@ -592,7 +562,6 @@ async function searchSimilarConversations(query, threshold = 0.5) {
   
   return filtered;
 }
-
 // New function to analyze conversation clusters
 async function analyzeConversationClusters() {
   const clusters = new Map();
